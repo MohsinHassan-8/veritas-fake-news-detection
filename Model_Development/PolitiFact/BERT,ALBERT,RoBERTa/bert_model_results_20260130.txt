@@ -1,0 +1,84 @@
+============================================================
+MODEL SELECTION WITH PROPER 5-FOLD CV (BERT)
+============================================================
+
+Tuning: Logistic Regression
+Best Params: {'C': 0.5}
+CV Accuracy: 0.8787
+CV Precision: 0.8714
+CV Recall: 0.8918
+CV F1: 0.8815
+
+
+Tuning: SVM Linear
+Best Params: {'C': 0.1}
+CV Accuracy: 0.8698
+CV Precision: 0.8671
+CV Recall: 0.8772
+CV F1: 0.8721
+
+
+Tuning: SVM RBF
+Best Params: {'C': 5, 'gamma': 'scale'}
+CV Accuracy: 0.8772
+CV Precision: 0.8689
+CV Recall: 0.8918
+CV F1: 0.8802
+
+
+Tuning: Random Forest
+Best Params: {'max_depth': 10, 'n_estimators': 200}
+CV Accuracy: 0.8388
+CV Precision: 0.8157
+CV Recall: 0.8801
+CV F1: 0.8467
+
+
+MODEL RANKING
+              Model                            Best Params  CV Accuracy  CV Precision  CV Recall  CV F1
+Logistic Regression                             {'C': 0.5}       0.8787        0.8714     0.8918 0.8815
+            SVM RBF             {'C': 5, 'gamma': 'scale'}       0.8772        0.8689     0.8918 0.8802
+         SVM Linear                             {'C': 0.1}       0.8698        0.8671     0.8772 0.8721
+      Random Forest {'max_depth': 10, 'n_estimators': 200}       0.8388        0.8157     0.8801 0.8467
+
+Selected Best Model: Logistic Regression
+CV Accuracy: 0.8787
+
+Model Retrained Successfully
+
+Final Test Accuracy : 0.8588
+Final Test Precision: 0.8353
+Final Test Recall   : 0.8765
+Final Test F1 Score : 0.8554
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.88      0.84      0.86        89
+           1       0.84      0.88      0.86        81
+
+    accuracy                           0.86       170
+   macro avg       0.86      0.86      0.86       170
+weighted avg       0.86      0.86      0.86       170
+
+
+Confusion Matrix:
+[[75 14]
+ [10 71]]
+
+COMPARISON OF ALL MODELS ON TEST SET
+              Model  Test Accuracy  Test Precision  Test Recall  Test F1
+            SVM RBF         0.8824          0.8675       0.8889   0.8780
+      Random Forest         0.8765          0.8659       0.8765   0.8712
+         SVM Linear         0.8647          0.8452       0.8765   0.8606
+Logistic Regression         0.8588          0.8353       0.8765   0.8554
+
+BEST MODEL BASED ON TEST SET
+Best Model: SVM RBF
+Test Accuracy: 0.8824
+Test F1 Score: 0.878
+
+GENERATING PLOTS
+
+✓ All plots saved successfully!
+============================================================

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VERITAS — Analysis Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+/* ── DARK THEME (default) ── */
+:root {
+  --cyan:#00f5d4; --magenta:#f72585; --purple:#7209b7;
+  --bg:#05050f; --bg2:#0a0a1a; --panel:#0d0d20;
+  --border:#1a1a3a; --text:#c8c8e8; --dim:#555577; --white:#e8e8ff;
+  --green:#39ff14; --amber:#ffb700; --red:#ff2d55;
+  --scanline:rgba(0,0,0,0.07); --grid:rgba(0,245,212,0.02);
+  --nav-bg:rgba(5,5,15,0.92);
+  --input-bg:rgba(0,0,0,0.4);
+  --overlay-bg:rgba(0,0,0,0.75);
+  --modal-bg:#0d0d20;
+  --shadow:rgba(0,0,0,0.6);
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --cyan:#007a6a; --magenta:#c41560; --purple:#5a0096;
+  --bg:#f0f2f8; --bg2:#e4e7f2; --panel:#ffffff;
+  --border:#c0c4d8; --text:#2a2a4a; --dim:#7a7a9a; --white:#1a1a3a;
+  --green:#1a8a00; --amber:#a07000; --red:#cc0022;
+  --scanline:rgba(0,0,0,0.0); --grid:rgba(0,90,80,0.04);
+  --nav-bg:rgba(240,242,248,0.96);
+  --input-bg:rgba(255,255,255,0.8);
+  --overlay-bg:rgba(0,0,0,0.5);
+  --modal-bg:#ffffff;
+  --shadow:rgba(100,100,150,0.2);
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;overflow-x:hidden;transition:background 0.3s,color 0.3s;}
+
+/* scanlines — hidden in light mode */
+body::before{
+  content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline) 2px,var(--scanline) 4px);
+  pointer-events:none;z-index:9999;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:50px 50px;pointer-events:none;z-index:0;
+}
+
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── NAVBAR ── */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 2rem;border-bottom:1px solid var(--border);
+  background:var(--nav-bg);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:100;transition:background 0.3s,border-color 0.3s;
+}
+.nav-logo{
+  font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:900;letter-spacing:0.3em;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-right{display:flex;align-items:center;gap:1rem;}
+.nav-status{display:flex;align-items:center;gap:0.5rem;font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--dim);}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* theme toggle */
+.theme-btn{
+  background:transparent;border:1px solid var(--border);color:var(--dim);
+  font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;
+  padding:0.3rem 0.7rem;cursor:pointer;transition:all 0.3s;
+}
+.theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* user button — opens profile */
+.nav-user{
+  font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--cyan);
+  border:1px solid var(--border);padding:0.3rem 0.8rem;cursor:pointer;transition:all 0.3s;
+  background:transparent;position:relative;
+}
+.nav-user:hover{border-color:var(--cyan);background:rgba(0,245,212,0.07);}
+[data-theme="light"] .nav-user:hover{background:rgba(0,122,106,0.08);}
+
+/* ── PROFILE DROPDOWN ── */
+.profile-menu{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:var(--modal-bg);border:1px solid var(--border);
+  min-width:160px;z-index:200;
+  box-shadow:0 8px 32px var(--shadow);
+  display:none;flex-direction:column;
+}
+.profile-menu.open{display:flex;}
+.profile-menu-item{
+  padding:0.65rem 1rem;font-family:'Share Tech Mono',monospace;font-size:0.68rem;
+  color:var(--text);cursor:pointer;border:none;background:transparent;
+  text-align:left;letter-spacing:0.1em;transition:background 0.2s,color 0.2s;
+}
+.profile-menu-item:hover{background:rgba(0,245,212,0.08);color:var(--cyan);}
+[data-theme="light"] .profile-menu-item:hover{background:rgba(0,122,106,0.08);}
+.profile-menu-item.danger:hover{background:rgba(255,45,85,0.08);color:var(--red);}
+.profile-menu-sep{height:1px;background:var(--border);margin:0.25rem 0;}
+
+/* ── PROFILE MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:var(--overlay-bg);
+  z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--modal-bg);border:1px solid var(--border);
+  width:100%;max-width:440px;padding:0;
+  clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));
+  position:relative;box-shadow:0 20px 60px var(--shadow);
+}
+[data-theme="light"] .modal{clip-path:none;border-radius:4px;}
+.modal-header{
+  padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:0.2em;color:var(--cyan);}
+.modal-close{
+  background:transparent;border:none;color:var(--dim);font-size:1.2rem;
+  cursor:pointer;line-height:1;padding:0.2rem 0.4rem;transition:color 0.2s;
+}
+.modal-close:hover{color:var(--magenta);}
+.modal-body{padding:1.5rem;}
+
+/* avatar */
+.profile-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;
+  color:#fff;margin:0 auto 1.25rem;letter-spacing:0.05em;
+}
+.profile-info{text-align:center;margin-bottom:1.5rem;}
+.profile-name{font-family:'Orbitron',monospace;font-size:1rem;letter-spacing:0.15em;color:var(--white);margin-bottom:0.3rem;}
+.profile-email{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--dim);}
+
+/* edit fields */
+.edit-field{margin-bottom:1rem;}
+.edit-field label{display:block;font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.2em;color:var(--dim);margin-bottom:0.4rem;text-transform:uppercase;}
+.edit-field input{
+  width:100%;padding:0.65rem 0.9rem;
+  background:var(--input-bg);border:1px solid var(--border);
+  color:var(--white);font-family:'Share Tech Mono',monospace;font-size:0.8rem;
+  outline:none;transition:all 0.3s;
+}
+.edit-field input:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,245,212,0.12);}
+[data-theme="light"] .edit-field input:focus{box-shadow:0 0 12px rgba(0,122,106,0.12);}
+
+.modal-actions{display:flex;gap:0.75rem;margin-top:1.25rem;}
+.btn-save{
+  flex:1;padding:0.75rem;background:transparent;border:1px solid var(--cyan);
+  color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.68rem;letter-spacing:0.15em;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-save:hover{background:rgba(0,245,212,0.1);}
+[data-theme="light"] .btn-save:hover{background:rgba(0,122,106,0.1);}
+.btn-logout-modal{
+  flex:1;padding:0.75rem;background:transparent;border:1px solid var(--magenta);
+  color:var(--magenta);font-family:'Orbitron',monospace;font-size:0.68rem;letter-spacing:0.15em;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-logout-modal:hover{background:rgba(247,37,133,0.1);}
+.save-msg{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--green);text-align:center;margin-top:0.5rem;display:none;}
+
+/* ── MAIN GRID ── */
+main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding:1.5rem 2rem;max-width:1400px;width:100%;margin:0 auto;}
+
+/* ── PANEL ── */
+.panel{background:var(--panel);border:1px solid var(--border);position:relative;transition:background 0.3s,border-color 0.3s;}
+.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,245,212,0.03),transparent);pointer-events:none;}
+[data-theme="light"] .panel::before{background:linear-gradient(135deg,rgba(0,122,106,0.03),transparent);}
+.panel-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:0.2em;color:var(--cyan);}
+.panel-tag{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--dim);border:1px solid var(--border);padding:0.2rem 0.5rem;}
+.panel-body{padding:1.25rem;}
+
+/* ── TEXTAREA ── */
+.input-area{
+  width:100%;min-height:220px;padding:1rem;resize:vertical;
+  background:var(--input-bg);border:1px solid var(--border);
+  color:var(--white);font-family:'Share Tech Mono',monospace;font-size:0.8rem;line-height:1.6;
+  outline:none;transition:all 0.3s;
+}
+.input-area:focus{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,245,212,0.1);}
+[data-theme="light"] .input-area:focus{box-shadow:0 0 15px rgba(0,122,106,0.1);}
+.input-area::placeholder{color:var(--dim);}
+.char-count{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--dim);text-align:right;margin-top:0.4rem;}
+
+/* ── BUTTONS ── */
+.btn-analyze{
+  width:100%;margin-top:1rem;padding:1rem;
+  background:transparent;border:1px solid var(--cyan);
+  color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.75rem;letter-spacing:0.2em;
+  cursor:pointer;position:relative;overflow:hidden;transition:all 0.3s;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+}
+[data-theme="light"] .btn-analyze{clip-path:none;}
+.btn-analyze::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,245,212,0.15),transparent);transition:left 0.5s;
+}
+.btn-analyze:hover::before{left:100%;}
+.btn-analyze:hover{background:rgba(0,245,212,0.08);box-shadow:0 0 25px rgba(0,245,212,0.2);}
+[data-theme="light"] .btn-analyze:hover{background:rgba(0,122,106,0.08);box-shadow:0 0 15px rgba(0,122,106,0.15);}
+.btn-analyze:disabled{opacity:0.4;cursor:not-allowed;border-color:var(--dim);color:var(--dim);}
+.btn-clear{
+  width:100%;margin-top:0.5rem;padding:0.6rem;
+  background:transparent;border:1px solid var(--border);
+  color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-clear:hover{border-color:var(--magenta);color:var(--magenta);}
+
+/* ── RESULT STATES ── */
+.result-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:1rem;}
+.idle-icon{
+  width:80px;height:80px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;
+  clip-path:polygon(0 0,calc(100% - 15px) 0,100% 15px,100% 100%,15px 100%,0 calc(100% - 15px));
+}
+[data-theme="light"] .idle-icon{clip-path:none;border-radius:50%;}
+.idle-icon::before{
+  content:'';position:absolute;inset:-1px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  clip-path:polygon(0 0,calc(100% - 15px) 0,100% 15px,100% 100%,15px 100%,0 calc(100% - 15px));z-index:-1;
+}
+[data-theme="light"] .idle-icon::before{clip-path:none;border-radius:50%;}
+.idle-text{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--dim);text-align:center;line-height:2;}
+
+.result-loading{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:2rem;}
+.scanner{width:200px;height:200px;position:relative;border:1px solid var(--border);}
+.scanner::before{content:'';position:absolute;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 1.5s linear infinite;top:0;}
+@keyframes scan{0%{top:0;opacity:1;}100%{top:100%;opacity:0.3;}}
+.scanner-inner{position:absolute;inset:20px;border:1px solid rgba(0,245,212,0.2);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--cyan);text-align:center;line-height:2;}
+.loading-steps{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--dim);text-align:center;line-height:2.2;}
+
+.result-output{display:none;flex-direction:column;gap:1.25rem;padding:0.5rem 0;}
+
+.verdict-box{padding:1.5rem;text-align:center;position:relative;clip-path:polygon(0 0,calc(100% - 15px) 0,100% 15px,100% 100%,15px 100%,0 calc(100% - 15px));}
+[data-theme="light"] .verdict-box{clip-path:none;border-radius:4px;}
+.verdict-box.fake{background:rgba(255,45,85,0.1);border:1px solid rgba(255,45,85,0.4);}
+.verdict-box.real{background:rgba(57,255,20,0.1);border:1px solid rgba(57,255,20,0.4);}
+[data-theme="light"] .verdict-box.real{background:rgba(26,138,0,0.08);border:1px solid rgba(26,138,0,0.35);}
+.verdict-label{font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.3em;margin-bottom:0.5rem;}
+.verdict-label.fake{color:rgba(255,45,85,0.7);}
+.verdict-label.real{color:rgba(57,255,20,0.7);}
+[data-theme="light"] .verdict-label.real{color:rgba(26,138,0,0.8);}
+.verdict-word{font-family:'Orbitron',monospace;font-size:3rem;font-weight:900;letter-spacing:0.1em;}
+.verdict-word.fake{color:var(--red);text-shadow:0 0 30px rgba(255,45,85,0.4);}
+.verdict-word.real{color:var(--green);text-shadow:0 0 30px rgba(57,255,20,0.3);}
+[data-theme="light"] .verdict-word.real{text-shadow:none;}
+
+.conf-header{display:flex;justify-content:space-between;margin-bottom:0.5rem;font-family:'Share Tech Mono',monospace;font-size:0.65rem;}
+.conf-label{color:var(--dim);}.conf-value{color:var(--cyan);}
+.conf-bar-bg{height:6px;background:rgba(128,128,128,0.15);position:relative;overflow:hidden;}
+.conf-bar-fill{height:100%;width:0%;transition:width 1.5s cubic-bezier(0.16,1,0.3,1);position:relative;}
+.conf-bar-fill::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:12px;background:inherit;box-shadow:0 0 8px currentColor;}
+.conf-bar-fill.fake{background:var(--red);}.conf-bar-fill.real{background:var(--green);}
+
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;}
+.meta-item{background:var(--input-bg);border:1px solid var(--border);padding:0.75rem;transition:background 0.3s;}
+.meta-key{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--dim);margin-bottom:0.3rem;letter-spacing:0.1em;}
+.meta-val{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;color:var(--white);}
+
+.result-error{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:1rem;text-align:center;}
+.err-icon{font-size:2.5rem;margin-bottom:0.5rem;}
+.err-title{font-family:'Orbitron',monospace;font-size:0.9rem;color:var(--magenta);letter-spacing:0.1em;}
+.err-msg{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--dim);line-height:2;max-width:280px;}
+
+/* ── FEEDBACK ACTIONS (submit/flag) ── */
+.feedback-row{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.btn-feedback{
+  flex:1;padding:0.6rem 0.5rem;background:transparent;border:1px solid var(--border);
+  color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;
+  cursor:pointer;transition:all 0.3s;text-align:center;
+}
+.btn-feedback:hover{border-color:var(--cyan);color:var(--cyan);}
+.btn-feedback.flagged,.btn-feedback:disabled{opacity:0.5;cursor:default;border-color:var(--green);color:var(--green);}
+
+/* ── LOW CONFIDENCE PROMPT ── */
+.lowconf-box{
+  background:rgba(255,183,0,0.08);border:1px solid var(--amber);padding:1rem;
+  display:flex;flex-direction:column;gap:0.75rem;
+}
+.lowconf-msg{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--amber);line-height:1.8;}
+.lowconf-actions{display:flex;gap:0.5rem;}
+.btn-lowconf{
+  flex:1;padding:0.6rem;background:transparent;border:1px solid var(--amber);
+  color:var(--amber);font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.1em;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-lowconf:hover{background:rgba(255,183,0,0.12);}
+.btn-lowconf.secondary{border-color:var(--border);color:var(--dim);}
+.btn-lowconf.secondary:hover{border-color:var(--dim);color:var(--text);background:transparent;}
+
+/* ── REVIEW SUBMIT MODAL (correct verdict) ── */
+.review-options{display:flex;gap:0.75rem;margin-bottom:1rem;}
+.review-option{
+  flex:1;padding:0.75rem;background:transparent;border:1px solid var(--border);
+  color:var(--text);font-family:'Orbitron',monospace;font-size:0.75rem;letter-spacing:0.15em;
+  cursor:pointer;transition:all 0.3s;text-align:center;
+}
+.review-option:hover{border-color:var(--cyan);color:var(--cyan);}
+.review-option.selected.real{border-color:var(--green);color:var(--green);background:rgba(57,255,20,0.08);}
+.review-option.selected.fake{border-color:var(--red);color:var(--red);background:rgba(255,45,85,0.08);}
+
+/* ── COMMUNITY SUBMISSION PANEL ── */
+.community-panel{grid-column:1/-1;}
+.community-form{display:flex;flex-direction:column;gap:1rem;}
+.community-form textarea{
+  width:100%;min-height:100px;padding:0.75rem;resize:vertical;
+  background:var(--input-bg);border:1px solid var(--border);
+  color:var(--white);font-family:'Share Tech Mono',monospace;font-size:0.8rem;line-height:1.6;outline:none;
+}
+.community-form textarea:focus{border-color:var(--cyan);}
+.community-form input[type="text"]{
+  width:100%;padding:0.65rem 0.9rem;background:var(--input-bg);border:1px solid var(--border);
+  color:var(--white);font-family:'Share Tech Mono',monospace;font-size:0.8rem;outline:none;
+}
+.community-form input[type="text"]:focus{border-color:var(--cyan);}
+.community-row{display:flex;gap:1rem;flex-wrap:wrap;}
+.community-row > div{flex:1;min-width:180px;}
+.field-label{display:block;font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.2em;color:var(--dim);margin-bottom:0.4rem;text-transform:uppercase;}
+.community-msg{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--green);display:none;}
+
+/* ── HISTORY ── */
+.history-panel{grid-column:1/-1;max-height:280px;}
+.history-list{display:flex;flex-direction:column;gap:0.5rem;max-height:200px;overflow-y:auto;padding-right:0.25rem;}
+.history-list::-webkit-scrollbar{width:3px;}
+.history-list::-webkit-scrollbar-track{background:transparent;}
+.history-list::-webkit-scrollbar-thumb{background:var(--border);}
+.history-item{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:1rem;padding:0.6rem 0.75rem;border:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.65rem;transition:border-color 0.2s;}
+.history-item:hover{border-color:rgba(0,245,212,0.3);}
+[data-theme="light"] .history-item:hover{border-color:rgba(0,122,106,0.3);}
+.h-text{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.h-domain{color:var(--dim);}.h-conf{color:var(--cyan);}
+.h-verdict{font-weight:600;letter-spacing:0.1em;}
+.h-verdict.fake{color:var(--red);}.h-verdict.real{color:var(--green);}
+.empty-history{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--dim);text-align:center;padding:2rem;}
+
+/* ── HUD CORNERS ── */
+.hud-corner{position:fixed;width:60px;height:60px;}
+.hud-tl{top:0.5rem;left:0.5rem;border-top:1px solid var(--cyan);border-left:1px solid var(--cyan);}
+.hud-tr{top:0.5rem;right:0.5rem;border-top:1px solid var(--magenta);border-right:1px solid var(--magenta);}
+.hud-bl{bottom:0.5rem;left:0.5rem;border-bottom:1px solid var(--magenta);border-left:1px solid var(--magenta);}
+.hud-br{bottom:0.5rem;right:0.5rem;border-bottom:1px solid var(--cyan);border-right:1px solid var(--cyan);}
+[data-theme="light"] .hud-corner{display:none;}
+
+@media(max-width:900px){
+  main{grid-template-columns:1fr;}
+  .history-panel{grid-column:1;}
+  nav{padding:0.75rem 1rem;}
+  .nav-status{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="hud-tl hud-corner"></div>
+<div class="hud-tr hud-corner"></div>
+<div class="hud-bl hud-corner"></div>
+<div class="hud-br hud-corner"></div>
+
+<!-- ── PROFILE MODAL ── -->
+<div class="modal-overlay" id="profileOverlay" onclick="closeProfileOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">AGENT PROFILE</span>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div class="profile-info">
+        <div class="profile-name" id="profileDisplayName">—</div>
+        <div class="profile-email" id="profileEmail">—</div>
+      </div>
+      <div class="edit-field">
+        <label>Display Name</label>
+        <input type="text" id="editUsername" placeholder="Enter display name">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="saveProfile()">SAVE CHANGES</button>
+        <button class="btn-logout-modal" onclick="doLogout()">LOGOUT</button>
+      </div>
+      <div class="save-msg" id="saveMsg">✓ Profile updated successfully</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REVIEW SUBMIT MODAL ── -->
+<div class="modal-overlay" id="reviewOverlay" onclick="closeReviewOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">SUBMIT FOR REVIEW</span>
+      <button class="modal-close" onclick="closeReviewModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="edit-field">
+        <label>What is the correct label?</label>
+        <div class="review-options">
+          <button class="review-option" id="reviewOptReal" onclick="selectReviewLabel('REAL')">REAL</button>
+          <button class="review-option" id="reviewOptFake" onclick="selectReviewLabel('FAKE')">FAKE</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="submitReview()">SUBMIT CORRECTION</button>
+      </div>
+      <div class="save-msg" id="reviewMsg">✓ Submitted — thanks for helping improve VERITAS</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMMUNITY SUBMISSION MODAL ── -->
+<div class="modal-overlay" id="communityOverlay" onclick="closeCommunityOnOverlay(event)">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title">SUBMIT NEWS ARTICLE</span>
+      <button class="modal-close" onclick="closeCommunityModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="community-form">
+        <div>
+          <label class="field-label">Article Text</label>
+          <textarea id="communityText" placeholder="Paste the full article text here..."></textarea>
+        </div>
+        <div class="community-row">
+          <div>
+            <label class="field-label">Label</label>
+            <div class="review-options">
+              <button class="review-option" id="commOptReal" onclick="selectCommunityLabel('REAL')">REAL</button>
+              <button class="review-option" id="commOptFake" onclick="selectCommunityLabel('FAKE')">FAKE</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Source URL (optional)</label>
+            <input type="text" id="communitySource" placeholder="https://...">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-save" onclick="submitCommunity()">SUBMIT ARTICLE</button>
+        </div>
+        <div class="save-msg" id="communityMsg">✓ Submitted — thanks for contributing to the dataset</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <nav>
+    <div class="nav-logo">VERITAS</div>
+    <div class="nav-right">
+      <div class="nav-status"><span class="dot"></span>4 MODELS ONLINE</div>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ LIGHT</button>
+      <div style="position:relative;">
+        <button class="nav-user" id="navUser" onclick="toggleProfileMenu()">⬡ AGENT_USER</button>
+        <div class="profile-menu" id="profileMenu">
+          <button class="profile-menu-item" onclick="openProfile()">👤 View Profile</button>
+          <button class="profile-menu-item" onclick="openProfile()">✏ Edit Profile</button>
+          <div class="profile-menu-sep"></div>
+          <button class="profile-menu-item danger" onclick="doLogout()">⏏ Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">INPUT TERMINAL</span>
+        <span class="panel-tag">ENGLISH ONLY</span>
+      </div>
+      <div class="panel-body">
+        <textarea class="input-area" id="inputText"
+          placeholder="Paste news article, headline or political statement here...&#10;&#10;System will auto-detect domain and select appropriate model."
+          oninput="updateCount()"></textarea>
+        <div class="char-count"><span id="charCount">0</span> / 5000 CHARS</div>
+        <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">⬡ INITIATE ANALYSIS</button>
+        <button class="btn-clear" onclick="clearInput()">CLEAR TERMINAL</button>
+      </div>
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">ANALYSIS OUTPUT</span>
+        <span class="panel-tag" id="resultTag">AWAITING INPUT</span>
+      </div>
+      <div class="panel-body" style="position:relative;min-height:420px;display:flex;flex-direction:column;justify-content:center;">
+
+        <div class="result-idle" id="stateIdle">
+          <div class="idle-icon">⬡</div>
+          <div class="idle-text">
+            SYSTEM READY<br>── ── ── ── ──<br>
+            PASTE TEXT TO BEGIN<br>AUTO-ROUTING ENABLED<br>── ── ── ── ──<br>
+            4 ROBERTA MODELS STANDBY
+          </div>
+        </div>
+
+        <div class="result-loading" id="stateLoading">
+          <div class="scanner">
+            <div class="scanner-inner" id="loadingStep">INITIALIZING<br>PIPELINE...</div>
+          </div>
+          <div class="loading-steps" id="loadingLog">
+            <span style="color:var(--cyan)">▶</span> Preprocessing text...<br>
+            <span style="color:var(--dim)">○</span> Detecting language...<br>
+            <span style="color:var(--dim)">○</span> Identifying domain...<br>
+            <span style="color:var(--dim)">○</span> Routing to model...<br>
+            <span style="color:var(--dim)">○</span> Running inference...
+          </div>
+        </div>
+
+        <div class="result-output" id="stateResult">
+          <div class="lowconf-box" id="lowConfBox" style="display:none;">
+            <div class="lowconf-msg" id="lowConfMsg">⚠ Our model isn't confident about this one. Would you like to submit it to our dataset for review?</div>
+            <div class="lowconf-actions">
+              <button class="btn-lowconf" onclick="lowConfRespond('yes')">YES, SUBMIT</button>
+              <button class="btn-lowconf secondary" onclick="lowConfRespond('no')">NO</button>
+              <button class="btn-lowconf secondary" onclick="lowConfRespond('show')">SHOW RESULT ANYWAY</button>
+            </div>
+          </div>
+          <div class="verdict-box" id="verdictBox">
+            <div class="verdict-label" id="verdictLabel">CLASSIFICATION RESULT</div>
+            <div class="verdict-word" id="verdictWord">—</div>
+          </div>
+          <div class="conf-section">
+            <div class="conf-header">
+              <span class="conf-label">CONFIDENCE LEVEL</span>
+              <span class="conf-value" id="confText">0%</span>
+            </div>
+            <div class="conf-bar-bg"><div class="conf-bar-fill" id="confBar"></div></div>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <div class="meta-key">DETECTED DOMAIN</div>
+              <div class="meta-val" id="metaDomain">—</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-key">MODEL USED</div>
+              <div class="meta-val" id="metaModel">—</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-key">LANGUAGE</div>
+              <div class="meta-val" style="color:var(--cyan)">ENGLISH</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-key">STATUS</div>
+              <div class="meta-val" style="color:var(--green)" id="metaStatus">VERIFIED</div>
+            </div>
+          </div>
+          <div class="feedback-row">
+            <button class="btn-feedback" id="btnSubmitReview" onclick="openReviewModal()">⬡ WAS THIS VERDICT WRONG? SUBMIT FOR REVIEW</button>
+            <button class="btn-feedback" id="btnFlagOutdated" onclick="flagOutdated()">⬡ FLAG AS OUTDATED</button>
+          </div>
+        </div>
+
+        <div class="result-error" id="stateError">
+          <div class="err-icon">⚠</div>
+          <div class="err-title" id="errTitle">ANALYSIS FAILED</div>
+          <div class="err-msg" id="errMsg">An error occurred during processing.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY PANEL -->
+    <div class="panel history-panel">
+      <div class="panel-header">
+        <span class="panel-title">ANALYSIS HISTORY</span>
+        <span class="panel-tag">SESSION LOG</span>
+      </div>
+      <div class="panel-body">
+        <div class="history-list" id="historyList">
+          <div class="empty-history">NO RECORDS IN SESSION LOG</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMUNITY SUBMISSION PANEL -->
+    <div class="panel community-panel">
+      <div class="panel-header">
+        <span class="panel-title">SUBMIT A RECENT NEWS ARTICLE</span>
+        <span class="panel-tag">CROWDSOURCED DATASET</span>
+      </div>
+      <div class="panel-body">
+        <div class="idle-text" style="text-align:left;margin-bottom:1rem;">
+          Help expand our training data — submit a recent article with its true label (Real or Fake) and an optional source link.
+        </div>
+        <button class="btn-analyze" onclick="openCommunityModal()" style="margin-top:0;">⬡ SUBMIT NEWS ARTICLE</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- UI utilities (no auth logic) -->
+<script>
+let sessionHistory = [];
+
+/* ── THEME ── */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙 DARK' : '☀ LIGHT';
+  localStorage.setItem('veritas-theme', isDark ? 'light' : 'dark');
+}
+(function applyTheme() {
+  const saved = localStorage.getItem('veritas-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀ LIGHT' : '🌙 DARK';
+})();
+
+/* ── PROFILE DROPDOWN ── */
+function toggleProfileMenu() {
+  document.getElementById('profileMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('navUser');
+  const menu = document.getElementById('profileMenu');
+  if (!btn.contains(e.target) && !menu.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+/* ── PROFILE MODAL ── */
+function openProfile() {
+  document.getElementById('profileMenu').classList.remove('open');
+  document.getElementById('profileOverlay').classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profileOverlay').classList.remove('open');
+  document.getElementById('saveMsg').style.display = 'none';
+}
+function closeProfileOnOverlay(e) {
+  if (e.target === document.getElementById('profileOverlay')) closeProfile();
+}
+
+/* ── CHAR COUNT ── */
+function updateCount() {
+  document.getElementById('charCount').textContent = document.getElementById('inputText').value.length;
+}
+
+/* ── CLEAR ── */
+function clearInput() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('charCount').textContent = '0';
+  showState('idle');
+  document.getElementById('resultTag').textContent = 'AWAITING INPUT';
+}
+
+/* ── STATE ── */
+function showState(state) {
+  document.getElementById('stateIdle').style.display    = state==='idle'    ? 'flex' : 'none';
+  document.getElementById('stateLoading').style.display = state==='loading' ? 'flex' : 'none';
+  document.getElementById('stateResult').style.display  = state==='result'  ? 'flex' : 'none';
+  document.getElementById('stateError').style.display   = state==='error'   ? 'flex' : 'none';
+}
+
+/* ── LOADING ANIMATION ── */
+async function animateLoading() {
+  const steps = [
+    ['PREPROCESSING...', 1], ['LANGUAGE CHECK...', 2],
+    ['DOMAIN DETECTION...', 3], ['ROUTING MODEL...', 4], ['RUNNING INFERENCE...', 5]
+  ];
+  const labels = ['Preprocessing text...','Detecting language...','Identifying domain...','Routing to model...','Running inference...'];
+  for (let i = 0; i < steps.length; i++) {
+    document.getElementById('loadingStep').textContent = steps[i][0];
+    const html = labels.map((l, idx) =>
+      `<span style="color:${idx<=i?'var(--cyan)':'var(--dim)'}">${idx<=i?'▶':'○'}</span> ${l}`
+    ).join('<br>');
+    document.getElementById('loadingLog').innerHTML = html;
+    await new Promise(r => setTimeout(r, 600));
+  }
+}
+
+/* ── CURRENT RESULT STATE (for feedback actions) ── */
+let currentResult = null;
+let currentInputText = '';
+
+/* ── SHOW RESULT ── */
+function showResult(data, inputText) {
+  currentResult = data;
+  currentInputText = inputText || currentInputText;
+
+  const isFake = data.label === 'FAKE';
+  const cls = isFake ? 'fake' : 'real';
+  document.getElementById('verdictBox').className = 'verdict-box ' + cls;
+  document.getElementById('verdictLabel').className = 'verdict-label ' + cls;
+  document.getElementById('verdictLabel').textContent = isFake ? '⚠ CLASSIFIED AS' : '✓ CLASSIFIED AS';
+  document.getElementById('verdictWord').className = 'verdict-word ' + cls;
+  document.getElementById('verdictWord').textContent = data.label;
+  document.getElementById('confText').textContent = data.confidence + '%';
+  const bar = document.getElementById('confBar');
+  bar.className = 'conf-bar-fill ' + cls;
+  bar.style.width = '0%';
+  setTimeout(() => bar.style.width = data.confidence + '%', 100);
+  document.getElementById('metaDomain').textContent  = data.domain      || data.domain;
+  document.getElementById('metaModel').textContent   = data.model_used  || data.model;
+  document.getElementById('resultTag').textContent   = isFake ? 'FAKE DETECTED' : 'AUTHENTIC';
+
+  // reset feedback buttons
+  const submitBtn = document.getElementById('btnSubmitReview');
+  const flagBtn   = document.getElementById('btnFlagOutdated');
+  submitBtn.disabled = false; submitBtn.classList.remove('flagged');
+  submitBtn.textContent = '⬡ WAS THIS VERDICT WRONG? SUBMIT FOR REVIEW';
+  flagBtn.disabled = false; flagBtn.classList.remove('flagged');
+  flagBtn.textContent = '⬡ FLAG AS OUTDATED';
+
+  // Low confidence → auto-ask
+  const lowConfBox = document.getElementById('lowConfBox');
+  if (data.low_confidence) {
+    document.getElementById('lowConfMsg').textContent =
+      `⚠ Our model isn't confident about this one (${data.confidence}%). Would you like to submit it to our dataset for review?`;
+    lowConfBox.style.display = 'flex';
+  } else {
+    lowConfBox.style.display = 'none';
+  }
+
+  showState('result');
+}
+
+/* ── LOW CONFIDENCE PROMPT RESPONSE ── */
+async function lowConfRespond(choice) {
+  document.getElementById('lowConfBox').style.display = 'none';
+  if (choice === 'yes') {
+    try {
+      await apiFlag({
+        text: currentInputText,
+        model_verdict: currentResult.label,
+        confidence: currentResult.confidence,
+        domain: currentResult.domain,
+        reason: 'low_confidence_auto_submit'
+      });
+    } catch (e) { console.warn('[VERITAS] Low-confidence submit failed:', e); }
+  } else if (choice === 'no') {
+    // Just dismiss, show result as-is
+  }
+  // 'show' and 'no' both just continue showing the result
+}
+
+/* ── SUBMIT FOR REVIEW (wrong verdict) ── */
+let selectedReviewLabel = null;
+
+function openReviewModal() {
+  selectedReviewLabel = null;
+  document.getElementById('reviewOptReal').classList.remove('selected','real');
+  document.getElementById('reviewOptFake').classList.remove('selected','fake');
+  document.getElementById('reviewMsg').style.display = 'none';
+  document.getElementById('reviewOverlay').classList.add('open');
+}
+function closeReviewModal() {
+  document.getElementById('reviewOverlay').classList.remove('open');
+}
+function closeReviewOnOverlay(e) {
+  if (e.target === document.getElementById('reviewOverlay')) closeReviewModal();
+}
+function selectReviewLabel(label) {
+  selectedReviewLabel = label;
+  document.getElementById('reviewOptReal').classList.remove('selected','real');
+  document.getElementById('reviewOptFake').classList.remove('selected','fake');
+  if (label === 'REAL') document.getElementById('reviewOptReal').classList.add('selected','real');
+  else document.getElementById('reviewOptFake').classList.add('selected','fake');
+}
+async function submitReview() {
+  if (!selectedReviewLabel || !currentResult) return;
+  const msg = document.getElementById('reviewMsg');
+  try {
+    await apiSubmitTraining({
+      text: currentInputText,
+      model_verdict: currentResult.label,
+      user_label: selectedReviewLabel,
+      confidence: currentResult.confidence,
+      domain: currentResult.domain
+    });
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✓ Submitted — thanks for helping improve VERITAS';
+    msg.style.display = 'block';
+    const submitBtn = document.getElementById('btnSubmitReview');
+    submitBtn.disabled = true; submitBtn.classList.add('flagged');
+    submitBtn.textContent = '✓ SUBMITTED FOR REVIEW';
+    setTimeout(closeReviewModal, 1200);
+  } catch (e) {
+    msg.style.color = 'var(--magenta)';
+    msg.textContent = '⚠ Failed to submit: ' + e.message;
+    msg.style.display = 'block';
+  }
+}
+
+/* ── FLAG AS OUTDATED ── */
+async function flagOutdated() {
+  if (!currentResult) return;
+  const btn = document.getElementById('btnFlagOutdated');
+  try {
+    await apiFlag({
+      text: currentInputText,
+      model_verdict: currentResult.label,
+      confidence: currentResult.confidence,
+      domain: currentResult.domain,
+      reason: 'flagged_outdated'
+    });
+    btn.disabled = true; btn.classList.add('flagged');
+    btn.textContent = '✓ FLAGGED AS OUTDATED';
+  } catch (e) {
+    console.warn('[VERITAS] Flag outdated failed:', e);
+  }
+}
+
+/* ── COMMUNITY SUBMISSION ── */
+let selectedCommunityLabel = null;
+
+function openCommunityModal() {
+  selectedCommunityLabel = null;
+  document.getElementById('communityText').value = '';
+  document.getElementById('communitySource').value = '';
+  document.getElementById('commOptReal').classList.remove('selected','real');
+  document.getElementById('commOptFake').classList.remove('selected','fake');
+  document.getElementById('communityMsg').style.display = 'none';
+  document.getElementById('communityOverlay').classList.add('open');
+}
+function closeCommunityModal() {
+  document.getElementById('communityOverlay').classList.remove('open');
+}
+function closeCommunityOnOverlay(e) {
+  if (e.target === document.getElementById('communityOverlay')) closeCommunityModal();
+}
+function selectCommunityLabel(label) {
+  selectedCommunityLabel = label;
+  document.getElementById('commOptReal').classList.remove('selected','real');
+  document.getElementById('commOptFake').classList.remove('selected','fake');
+  if (label === 'REAL') document.getElementById('commOptReal').classList.add('selected','real');
+  else document.getElementById('commOptFake').classList.add('selected','fake');
+}
+async function submitCommunity() {
+  const text = document.getElementById('communityText').value.trim();
+  const source = document.getElementById('communitySource').value.trim();
+  const msg = document.getElementById('communityMsg');
+
+  if (!text || !selectedCommunityLabel) {
+    msg.style.color = 'var(--magenta)';
+    msg.textContent = '⚠ Please enter article text and select a label.';
+    msg.style.display = 'block';
+    return;
+  }
+
+  try {
+    await apiSubmitCommunity({
+      text,
+      label: selectedCommunityLabel,
+      source_url: source || null
+    });
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✓ Submitted — thanks for contributing to the dataset';
+    msg.style.display = 'block';
+    setTimeout(closeCommunityModal, 1400);
+  } catch (e) {
+    msg.style.color = 'var(--magenta)';
+    msg.textContent = '⚠ Failed to submit: ' + e.message;
+    msg.style.display = 'block';
+  }
+}
+
+/* ── SHOW ERROR ── */
+function showError(msg) {
+  const map = {
+    'Only English text is supported.': 'NON-ENGLISH INPUT',
+    'Topic not covered by our models.': 'UNSUPPORTED DOMAIN',
+  };
+  document.getElementById('errTitle').textContent = map[msg] || 'ANALYSIS FAILED';
+  document.getElementById('errMsg').textContent   = msg;
+  document.getElementById('resultTag').textContent = 'ERROR';
+  showState('error');
+}
+
+/* ── ADD HISTORY ROW ── */
+function addHistory(text, data) {
+  sessionHistory.unshift({
+    text: text.substring(0, 60) + (text.length > 60 ? '...' : ''),
+    domain: data.domain, confidence: data.confidence, label: data.label
+  });
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!sessionHistory.length) { el.innerHTML = '<div class="empty-history">NO RECORDS IN SESSION LOG</div>'; return; }
+  el.innerHTML = sessionHistory.map(h => `
+    <div class="history-item">
+      <span class="h-text">${h.text}</span>
+      <span class="h-domain">${(h.domain||'').split(' ')[0].toUpperCase()}</span>
+      <span class="h-conf">${h.confidence}%</span>
+      <span class="h-verdict ${(h.label||'').toLowerCase()}">${h.label}</span>
+    </div>`).join('');
+}
+showState('idle');
+</script>
+
+<!-- Firebase auth + real API logic -->
+<script type="module" src="app.js"></script>
+</body>
+</html>

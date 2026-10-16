@@ -1,0 +1,4 @@
+backend/firebase-key.json
+backend/app.db
+backend/__pycache__/
+*.pyc

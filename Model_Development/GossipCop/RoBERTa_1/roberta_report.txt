@@ -1,0 +1,43 @@
+=================================================================
+  ROBERTA FINE-TUNING — EXPERIMENT REPORT
+=================================================================
+
+── CONFIG ──────────────────────────────────────────────────
+  Model        : roberta-base
+  Max length   : 128
+  Epochs run   : 4 / 5
+  Batch size   : 16
+  Grad accum   : 1
+  Learning rate: 2e-05
+  Warmup ratio : 0.06
+  Max grad norm: 1.0
+  Early stop   : patience=2
+  Training time: 7555.9s (125.9 min)
+
+── PER-EPOCH HISTORY ───────────────────────────────────────
+  Epoch  1 | train_loss=0.5337  val_loss=0.4491  train_acc=0.4663  val_acc=0.7910
+  Epoch  2 | train_loss=0.3802  val_loss=0.4182  train_acc=0.6198  val_acc=0.8155
+  Epoch  3 | train_loss=0.2821  val_loss=0.4853  train_acc=0.7179  val_acc=0.8063
+  Epoch  4 | train_loss=0.2055  val_loss=0.6031  train_acc=0.7945  val_acc=0.8136
+
+── FINAL TEST SET METRICS ──────────────────────────────────
+  Accuracy  : 0.8155
+  Precision : 0.8166
+  Recall    : 0.8162
+  F1 (macro): 0.8155
+  MCC       : 0.6329
+  Kappa     : 0.6314
+  AUC-ROC   : 0.8989
+  Avg Prec  : 0.9067
+
+── CLASSIFICATION REPORT ───────────────────────────────────
+              precision    recall  f1-score   support
+
+        Fake       0.79      0.85      0.82      1014
+        Real       0.84      0.79      0.81      1067
+
+    accuracy                           0.82      2081
+   macro avg       0.82      0.82      0.82      2081
+weighted avg       0.82      0.82      0.82      2081
+
+=================================================================

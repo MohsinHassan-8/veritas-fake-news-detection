@@ -1,0 +1,84 @@
+=================================================================
+MODEL SELECTION WITH PROPER 5-FOLD CROSS VALIDATION
+=================================================================
+
+[STEP 1] Tuning hyperparameters with 5-fold CV
+
+Tuning: LR
+Best Params: {'C': 0.5}
+CV Accuracy: 0.7207
+Precision: 0.7251
+Recall: 0.7050
+F1 Score: 0.7149
+
+
+Tuning: SVM Linear
+Best Params: {'C': 0.5}
+CV Accuracy: 0.7196
+Precision: 0.7256
+Recall: 0.7004
+F1 Score: 0.7128
+
+
+Tuning: SVM RBF
+Best Params: {'C': 5, 'gamma': 'scale'}
+CV Accuracy: 0.7505
+Precision: 0.7537
+Recall: 0.7393
+F1 Score: 0.7464
+
+
+Tuning: RF
+Best Params: {'max_depth': None, 'min_samples_split': 5, 'n_estimators': 300}
+CV Accuracy: 0.7169
+Precision: 0.7387
+Recall: 0.6658
+F1 Score: 0.7003
+
+
+[STEP 2] MODEL RANKING
+     Model                                                      Best Params  CV Accuracy  CV Precision  CV Recall  CV F1
+   SVM RBF                                       {'C': 5, 'gamma': 'scale'}       0.7505        0.7537     0.7393 0.7464
+        LR                                                       {'C': 0.5}       0.7207        0.7251     0.7050 0.7149
+SVM Linear                                                       {'C': 0.5}       0.7196        0.7256     0.7004 0.7128
+        RF {'max_depth': None, 'min_samples_split': 5, 'n_estimators': 300}       0.7169        0.7387     0.6658 0.7003
+
+Selected Best Model: SVM RBF
+CV Accuracy: 0.7505
+
+[STEP 3] Retraining best model
+
+[STEP 4] FINAL TEST EVALUATION
+Test Accuracy : 0.7439
+Test Precision: 0.7538
+Test Recall   : 0.7432
+Test F1 Score : 0.7485
+
+Classification Report:
+              precision    recall  f1-score   support
+
+        Fake       0.73      0.74      0.74      1014
+        Real       0.75      0.74      0.75      1067
+
+    accuracy                           0.74      2081
+   macro avg       0.74      0.74      0.74      2081
+weighted avg       0.74      0.74      0.74      2081
+
+
+[STEP 5] COMPARING ALL MODELS
+     Model  Test Accuracy  Test Precision  Test Recall  Test F1
+   SVM RBF         0.7439          0.7538       0.7432   0.7485
+        LR         0.7131          0.7313       0.6963   0.7134
+SVM Linear         0.7165          0.7407       0.6879   0.7133
+        RF         0.7184          0.7600       0.6589   0.7058
+
+Best Test Model: SVM RBF
+Accuracy : 0.7439
+Precision: 0.7538
+Recall   : 0.7432
+F1 Score : 0.7485
+
+[STEP 6] GENERATING PLOTS
+
+✓ All plots saved successfully.
+=================================================================

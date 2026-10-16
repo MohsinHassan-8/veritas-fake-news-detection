@@ -1,0 +1,29 @@
+﻿# secrets
+.env
+*.env
+!.env.example
+firebase-key*.json
+serviceAccount*.json
+
+# python / notebooks
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.onetoc2
+*.one
+
+# large model files (host on Hugging Face instead)
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.h5
+node_modules/
+app.db

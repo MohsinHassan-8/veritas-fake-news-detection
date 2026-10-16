@@ -1,0 +1,94 @@
+=================================================================
+MODEL SELECTION WITH PROPER 5-FOLD CROSS VALIDATION
+=================================================================
+
+[STEP 1] Tuning hyperparameters with 5-fold CV
+
+Tuning: LR
+Best Params: {'C': 0.5}
+CV Accuracy: 0.7861
+Precision: 0.7973
+Recall: 0.7637
+F1 Score: 0.7801
+
+
+Tuning: SVM Linear
+Best Params: {'C': 0.1}
+CV Accuracy: 0.7876
+Precision: 0.8064
+Recall: 0.7533
+F1 Score: 0.7789
+
+
+Tuning: SVM RBF
+Best Params: {'C': 2, 'gamma': 0.1}
+CV Accuracy: 0.7895
+Precision: 0.8039
+Recall: 0.7623
+F1 Score: 0.7825
+
+
+Tuning: Multinomial NB
+Best Params: {'alpha': 0.5}
+CV Accuracy: 0.7897
+Precision: 0.7793
+Recall: 0.8046
+F1 Score: 0.7918
+
+
+Tuning: RF
+Best Params: {'max_depth': None, 'min_samples_split': 5, 'n_estimators': 100}
+CV Accuracy: 0.7753
+Precision: 0.7790
+Recall: 0.7647
+F1 Score: 0.7718
+
+
+[STEP 2] MODEL RANKING
+         Model                                                      Best Params  CV Accuracy  CV Precision  CV Recall  CV F1
+Multinomial NB                                                   {'alpha': 0.5}       0.7897        0.7793     0.8046 0.7918
+       SVM RBF                                           {'C': 2, 'gamma': 0.1}       0.7895        0.8039     0.7623 0.7825
+    SVM Linear                                                       {'C': 0.1}       0.7876        0.8064     0.7533 0.7789
+            LR                                                       {'C': 0.5}       0.7861        0.7973     0.7637 0.7801
+            RF {'max_depth': None, 'min_samples_split': 5, 'n_estimators': 100}       0.7753        0.7790     0.7647 0.7718
+
+Selected Best Model: Multinomial NB
+CV Accuracy: 0.7897
+
+[STEP 3] Retraining best model
+
+[STEP 4] FINAL TEST EVALUATION
+Test Accuracy : 0.7761
+Test Precision: 0.7770
+Test Recall   : 0.7901
+Test F1 Score : 0.7835
+
+Classification Report:
+              precision    recall  f1-score   support
+
+        Fake       0.78      0.76      0.77      1014
+        Real       0.78      0.79      0.78      1067
+
+    accuracy                           0.78      2081
+   macro avg       0.78      0.78      0.78      2081
+weighted avg       0.78      0.78      0.78      2081
+
+
+[STEP 5] COMPARING ALL MODELS
+         Model  Test Accuracy  Test Precision  Test Recall  Test F1
+Multinomial NB         0.7761          0.7770       0.7901   0.7835
+       SVM RBF         0.7780          0.7928       0.7676   0.7800
+            LR         0.7746          0.7943       0.7563   0.7748
+            RF         0.7703          0.7791       0.7704   0.7747
+    SVM Linear         0.7717          0.8002       0.7395   0.7686
+
+Best Test Model: Multinomial NB
+Accuracy : 0.7761
+Precision: 0.777
+Recall   : 0.7901
+F1 Score : 0.7835
+
+[STEP 6] GENERATING PLOTS
+
+✓ All plots saved successfully.
+=================================================================
